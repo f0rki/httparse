@@ -18,6 +18,8 @@ jobs:
       - msrv_x64
       - msrv_aarch64
       - miri
+      - mirai
+      - clippy_check
     steps:
       - run: exit 0
 
