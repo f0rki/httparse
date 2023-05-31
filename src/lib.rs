@@ -527,7 +527,7 @@ impl<'h, 'b> Request<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = std::mem::take(&mut self.headers);
+        let headers = core::mem::take(&mut self.headers);
 
         /* SAFETY: see `parse_headers_iter_uninit` guarantees */
         unsafe {
@@ -630,7 +630,7 @@ impl<'h, 'b> Response<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = std::mem::take(&mut self.headers);
+        let headers = core::mem::take(&mut self.headers);
 
         // SAFETY: see guarantees of [`parse_headers_iter_uninit`], which leaves no uninitialized
         // headers around. On failure, the original headers are restored.
@@ -1005,7 +1005,7 @@ fn parse_headers_iter_uninit<'a>(
 
     impl<'r1, 'r2, 'a> Drop for ShrinkOnDrop<'r1, 'r2, 'a> {
         fn drop(&mut self) {
-            let headers = std::mem::take(self.headers);
+            let headers = core::mem::take(self.headers);
 
             /* SAFETY: num_headers is the number of initialized headers */
             let headers = unsafe { headers.get_unchecked_mut(..self.num_headers) };
