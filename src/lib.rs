@@ -558,19 +558,21 @@ fn skip_empty_lines(bytes: &mut Bytes<'_>) -> Result<()> {
         let b = bytes.peek();
         match b {
             Some(b'\r') => {
-                // there's `\r`, so it's safe to bump 1 pos
+                // SAFETY: peeked and found `\r`, so it's safe to bump 1 pos
                 unsafe { bytes.bump() };
                 expect!(bytes.next() == b'\n' => Err(Error::NewLine));
-            },
+            }
             Some(b'\n') => {
-                // there's `\n`, so it's safe to bump 1 pos
-                unsafe { bytes.bump(); }
-            },
+                // SAFETY: peeked and found `\n`, so it's safe to bump 1 pos
+                unsafe {
+                    bytes.bump();
+                }
+            }
             Some(..) => {
                 bytes.slice();
                 return Ok(Status::Complete(()));
-            },
-            None => return Ok(Status::Partial)
+            }
+            None => return Ok(Status::Partial),
         }
     }
 }
@@ -581,7 +583,7 @@ fn skip_spaces(bytes: &mut Bytes<'_>) -> Result<()> {
         let b = bytes.peek();
         match b {
             Some(b' ') => {
-                // there's ` `, so it's safe to bump 1 pos
+                // SAFETY: peeked and found ` `, so it's safe to bump 1 pos
                 unsafe { bytes.bump() };
             }
             Some(..) => {
@@ -630,6 +632,8 @@ impl<'h, 'b> Response<'h, 'b> {
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
         let headers = std::mem::take(&mut self.headers);
 
+        // SAFETY: see guarantees of [`parse_headers_iter_uninit`], which leaves no uninitialized
+        // headers around. On failure, the original headers are restored.
         unsafe {
             let headers: *mut [Header<'_>] = headers;
             let headers = headers as *mut [MaybeUninit<Header<'_>>];
@@ -749,7 +753,10 @@ pub fn parse_version(bytes: &mut Bytes) -> Result<u8> {
         // NOTE: should be const once MSRV >= 1.44
         let h10: u64 = u64::from_ne_bytes(*b"HTTP/1.0");
         let h11: u64 = u64::from_ne_bytes(*b"HTTP/1.1");
-        unsafe { bytes.advance(8); }
+        // SAFETY: peek_n(8) before ensure within bounds
+        unsafe {
+            bytes.advance(8);
+        }
         let block = u64::from_ne_bytes(eight);
         // NOTE: should be match once h10 & h11 are consts
         return if block == h10 {
@@ -758,7 +765,7 @@ pub fn parse_version(bytes: &mut Bytes) -> Result<u8> {
             Ok(Status::Complete(1))
         } else {
             Err(Error::Version)
-        }
+        };
     }
 
     // else (but not in `else` because of borrow checker)
@@ -825,27 +832,39 @@ fn parse_reason<'a>(bytes: &mut Bytes<'a>) -> Result<&'a str> {
         let b = next!(bytes);
         if b == b'\r' {
             expect!(bytes.next() == b'\n' => Err(Error::Status));
-            return Ok(Status::Complete(unsafe {
-                let bytes = bytes.slice_skip(2);
-                if !seen_obs_text {
-                    // all bytes up till `i` must have been HTAB / SP / VCHAR
-                    str::from_utf8_unchecked(bytes)
-                } else {
-                    // obs-text characters were found, so return the fallback empty string
-                    ""
-                }
-            }));
+            return Ok(Status::Complete(
+                // SAFETY: (1) calling bytes.slice_skip(2) is safe, because at least two next! calls
+                // advance the bytes iterator.
+                // (2) calling from_utf8_unchecked is safe, because the bytes returned by slice_skip
+                // were validated to be allowed US-ASCII chars by the other arms of the if/else or
+                // otherwise `seen_obs_text` is true and an empty string is returned instead.
+                unsafe {
+                    let bytes = bytes.slice_skip(2);
+                    if !seen_obs_text {
+                        // all bytes up till `i` must have been HTAB / SP / VCHAR
+                        str::from_utf8_unchecked(bytes)
+                    } else {
+                        // obs-text characters were found, so return the fallback empty string
+                        ""
+                    }
+                },
+            ));
         } else if b == b'\n' {
-            return Ok(Status::Complete(unsafe {
-                let bytes = bytes.slice_skip(1);
-                if !seen_obs_text {
-                    // all bytes up till `i` must have been HTAB / SP / VCHAR
-                    str::from_utf8_unchecked(bytes)
-                } else {
-                    // obs-text characters were found, so return the fallback empty string
-                    ""
-                }
-            }));
+            return Ok(Status::Complete(
+                // SAFETY: (1) calling bytes.slice_skip(1) is safe, because at least one next! call
+                // advance the bytes iterator.
+                // (2) see (2) of safety comment above.
+                unsafe {
+                    let bytes = bytes.slice_skip(1);
+                    if !seen_obs_text {
+                        // all bytes up till `i` must have been HTAB / SP / VCHAR
+                        str::from_utf8_unchecked(bytes)
+                    } else {
+                        // obs-text characters were found, so return the fallback empty string
+                        ""
+                    }
+                },
+            ));
         } else if !(b == 0x09 || b == b' ' || (0x21..=0x7E).contains(&b) || b >= 0x80) {
             return Err(Error::Status);
         } else if b >= 0x80 {
@@ -865,10 +884,10 @@ fn parse_token<'a>(bytes: &mut Bytes<'a>) -> Result<&'a str> {
     loop {
         let b = next!(bytes);
         if b == b' ' {
-            return Ok(Status::Complete(unsafe {
-                // all bytes up till `i` must have been `is_token`.
-                str::from_utf8_unchecked(bytes.slice_skip(1))
-            }));
+            return Ok(Status::Complete(
+                // SAFETY: all bytes up till `i` must have been `is_token` and therefore also utf-8.
+                unsafe { str::from_utf8_unchecked(bytes.slice_skip(1)) },
+            ));
         } else if !is_token(b) {
             return Err(Error::Token);
         }
@@ -883,15 +902,15 @@ pub fn parse_uri<'a>(bytes: &mut Bytes<'a>) -> Result<&'a str> {
     let start = bytes.pos();
     simd::match_uri_vectored(bytes);
     // URI must have at least one char
-    if bytes.pos() == start { 
+    if bytes.pos() == start {
         return Err(Error::Token);
     }
 
     if next!(bytes) == b' ' {
-        return Ok(Status::Complete(unsafe {
-            // all bytes up till `i` must have been `is_token`.
-            str::from_utf8_unchecked(bytes.slice_skip(1))
-        }));
+        return Ok(Status::Complete(
+            // SAFETY: all bytes up till `i` must have been `is_token` and therefore also utf-8.
+            unsafe { str::from_utf8_unchecked(bytes.slice_skip(1)) },
+        ));
     } else {
         Err(Error::Token)
     }
@@ -1084,10 +1103,12 @@ fn parse_headers_iter_uninit<'a>(
         let header_name: &str = 'name: loop {
             simd::match_header_name_vectored(bytes);
             let mut b = next!(bytes);
-            
-            let name = unsafe {
-                str::from_utf8_unchecked(bytes.slice_skip(1))
-            };
+
+            // SAFETY: previously bumped by 1 with next! -> always safe.
+            let bslice = unsafe { bytes.slice_skip(1) };
+            // SAFETY: previous call to match_header_name_vectored ensured all bytes are valid
+            // header name chars, and as such also valid utf-8.
+            let name = unsafe { str::from_utf8_unchecked(bslice) };
 
             if b == b':' {
                 break 'name name;
@@ -1154,7 +1175,7 @@ fn parse_headers_iter_uninit<'a>(
 
                 maybe_continue_after_obsolete_line_folding!(bytes, 'value_lines);
 
-                // having just checked that a newline exists, it's safe to skip it.
+                // SAFETY: having just checked that a newline exists, it's safe to skip it.
                 unsafe {
                     break 'value bytes.slice_skip(skip);
                 }

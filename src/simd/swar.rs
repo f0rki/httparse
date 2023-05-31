@@ -75,6 +75,8 @@ pub fn match_header_name_vectored(bytes: &mut Bytes) {
             return;
         }
     }
+    // SAFETY: match_tail processes at most the remaining data in `bytes`. advances `bytes` to the
+    // end, but no further.
     unsafe { bytes.advance(match_tail(is_header_name_token, bytes.as_ref())) };
 }
 
