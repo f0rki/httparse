@@ -75,6 +75,11 @@ impl<'a> Bytes<'a> {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline]
     pub fn slice(&mut self) -> &'a [u8] {
         // not moving position at all, so it's safe
         let slice = unsafe { slice_from_ptr_range(self.start, self.cursor) };
