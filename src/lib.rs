@@ -1079,6 +1079,7 @@ fn parse_headers_iter_uninit<'a>(
             handle_invalid_char!(bytes, b, HeaderName);
         }
 
+        #[allow(clippy::never_loop)]
         // parse header name until colon
         let header_name: &str = 'name: loop {
             simd::match_header_name_vectored(bytes);
