@@ -195,6 +195,7 @@ unsafe fn offsetnz(x: uint8x16_t) -> u32 {
 
 #[test]
 fn neon_code_matches_uri_chars_table() {
+    #[allow(clippy::undocumented_unsafe_blocks)]
     unsafe {
         assert!(byte_is_allowed(b'_', match_uri_vectored));
 
@@ -212,6 +213,7 @@ fn neon_code_matches_uri_chars_table() {
 
 #[test]
 fn neon_code_matches_header_value_chars_table() {
+    #[allow(clippy::undocumented_unsafe_blocks)]
     unsafe {
         assert!(byte_is_allowed(b'_', match_header_value_vectored));
 
@@ -229,6 +231,7 @@ fn neon_code_matches_header_value_chars_table() {
 
 #[test]
 fn neon_code_matches_header_name_chars_table() {
+    #[allow(clippy::undocumented_unsafe_blocks)]
     unsafe {
         assert!(byte_is_allowed(b'_', match_header_name_vectored));
 
