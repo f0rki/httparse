@@ -11,6 +11,8 @@ pub fn match_uri_vectored(bytes: &mut Bytes) {
     loop {
         if let Some(bytes8) = bytes.peek_n::<ByteBlock>(BLOCK_SIZE) {
             let n = match_uri_char_8_swar(bytes8);
+            // SAFETY: using peek_n to retrieve the bytes ensures that there are at least n more bytes
+            // in `bytes`, so calling `advance(n)` is safe.
             unsafe {
                 bytes.advance(n);
             }
@@ -20,7 +22,11 @@ pub fn match_uri_vectored(bytes: &mut Bytes) {
         }
         if let Some(b) = bytes.peek() {
             if is_uri_token(b) {
-                unsafe { bytes.advance(1); }
+                // SAFETY: using peek to retrieve the byte ensures that there is at least 1 more byte
+                // in bytes, so calling advance is safe.
+                unsafe {
+                    bytes.advance(1);
+                }
                 continue;
             }
         }
@@ -33,6 +39,8 @@ pub fn match_header_value_vectored(bytes: &mut Bytes) {
     loop {
         if let Some(bytes8) = bytes.peek_n::<ByteBlock>(BLOCK_SIZE) {
             let n = match_header_value_char_8_swar(bytes8);
+            // SAFETY: using peek_n to retrieve the bytes ensures that there are at least n more bytes
+            // in `bytes`, so calling `advance(n)` is safe.
             unsafe {
                 bytes.advance(n);
             }
@@ -42,7 +50,11 @@ pub fn match_header_value_vectored(bytes: &mut Bytes) {
         }
         if let Some(b) = bytes.peek() {
             if is_header_value_token(b) {
-                unsafe { bytes.advance(1); }
+                // SAFETY: using peek to retrieve the byte ensures that there is at least 1 more byte
+                // in bytes, so calling advance is safe.
+                unsafe {
+                    bytes.advance(1);
+                }
                 continue;
             }
         }
@@ -54,6 +66,8 @@ pub fn match_header_value_vectored(bytes: &mut Bytes) {
 pub fn match_header_name_vectored(bytes: &mut Bytes) {
     while let Some(block) = bytes.peek_n::<ByteBlock>(BLOCK_SIZE) {
         let n = match_block(is_header_name_token, block);
+        // SAFETY: using peek_n to retrieve the bytes ensures that there are at least n more bytes
+        // in `bytes`, so calling `advance(n)` is safe.
         unsafe {
             bytes.advance(n);
         }

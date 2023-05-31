@@ -1,5 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(missing_docs)]
+#![deny(
+    missing_docs,
+    clippy::missing_safety_doc,
+    clippy::undocumented_unsafe_blocks
+)]
 #![cfg_attr(test, deny(warnings))]
 
 //! # httparse
