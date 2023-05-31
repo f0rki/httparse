@@ -1238,11 +1238,11 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                #[cfg(debug_assertions)]
-                if size > (u64::MAX / RADIX) {
-                    // actually unreachable!(), because count stops the loop at 15 digits before we can
-                    // reach u64::MAX / RADIX == 0xfffffffffffffff, which requires 15 hex digits. This stops
-                    // mirai reporting a false alarm regarding the `size *= RADIX` multiplication below.
+                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
+                    // actually unreachable!(), because count stops the loop at 15 digits before
+                    // we can reach u64::MAX / RADIX == 0xfffffffffffffff, which requires 15 hex
+                    // digits. This stops mirai reporting a false alarm regarding the `size *=
+                    // RADIX` multiplication below.
                     return Err(InvalidChunkSize);
                 }
                 size *= RADIX;
@@ -1253,8 +1253,7 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                #[cfg(debug_assertions)]
-                if size > (u64::MAX / RADIX) {
+                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
                     return Err(InvalidChunkSize);
                 }
                 size *= RADIX;
@@ -1265,7 +1264,7 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                if size > (u64::MAX / RADIX) {
+                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
                     return Err(InvalidChunkSize);
                 }
                 size *= RADIX;
