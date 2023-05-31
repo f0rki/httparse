@@ -527,7 +527,7 @@ impl<'h, 'b> Request<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = core::mem::take(&mut self.headers);
+        let headers = core::mem::replace(&mut self.headers, &mut []);
 
         /* SAFETY: see `parse_headers_iter_uninit` guarantees */
         unsafe {
@@ -630,7 +630,7 @@ impl<'h, 'b> Response<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = core::mem::take(&mut self.headers);
+        let headers = core::mem::replace(&mut self.headers, &mut []);
 
         // SAFETY: see guarantees of [`parse_headers_iter_uninit`], which leaves no uninitialized
         // headers around. On failure, the original headers are restored.
@@ -1005,7 +1005,7 @@ fn parse_headers_iter_uninit<'a>(
 
     impl<'r1, 'r2, 'a> Drop for ShrinkOnDrop<'r1, 'r2, 'a> {
         fn drop(&mut self) {
-            let headers = core::mem::take(self.headers);
+            let headers = core::mem::replace(self.headers, &mut []);
 
             /* SAFETY: num_headers is the number of initialized headers */
             let headers = unsafe { headers.get_unchecked_mut(..self.num_headers) };
@@ -1238,7 +1238,7 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
+                if cfg!(debug_assertions) && size > (core::u64::MAX / RADIX) {
                     // actually unreachable!(), because count stops the loop at 15 digits before
                     // we can reach u64::MAX / RADIX == 0xfffffffffffffff, which requires 15 hex
                     // digits. This stops mirai reporting a false alarm regarding the `size *=
@@ -1253,7 +1253,7 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
+                if cfg!(debug_assertions) && size > (core::u64::MAX / RADIX) {
                     return Err(InvalidChunkSize);
                 }
                 size *= RADIX;
@@ -1264,7 +1264,7 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
-                if cfg!(debug_assertions) && size > (u64::MAX / RADIX) {
+                if cfg!(debug_assertions) && size > (core::u64::MAX / RADIX) {
                     return Err(InvalidChunkSize);
                 }
                 size *= RADIX;
