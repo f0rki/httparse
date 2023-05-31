@@ -18,7 +18,6 @@ jobs:
       - msrv_x64
       - msrv_aarch64
       - miri
-      - mirai
       - clippy_check
     steps:
       - run: exit 0
@@ -202,7 +201,7 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly-2023-05-09
-          components: rustc-dev rust-src rust-std
+          components: rustc-dev, rust-src, rust-std
           override: true
 
       - name: install mirai
