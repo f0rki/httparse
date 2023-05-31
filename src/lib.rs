@@ -26,7 +26,7 @@
 //! making it *even* faster.
 
 use core::{fmt, result, str};
-use core::mem::{self, MaybeUninit};
+use core::mem::{MaybeUninit};
 
 use crate::iter::Bytes;
 
@@ -356,9 +356,9 @@ impl ParserConfig {
     }
 
     /// Parses a request with the given config.
-    pub fn parse_request<'headers, 'buf>(
+    pub fn parse_request<'buf>(
         &self,
-        request: &mut Request<'headers, 'buf>,
+        request: &mut Request<'_, 'buf>,
         buf: &'buf [u8],
     ) -> Result<usize> {
         request.parse_with_config(buf, self)
@@ -413,9 +413,9 @@ impl ParserConfig {
     }
 
     /// Parses a response with the given config.
-    pub fn parse_response<'headers, 'buf>(
+    pub fn parse_response<'buf>(
         &self,
-        response: &mut Response<'headers, 'buf>,
+        response: &mut Response<'_, 'buf>,
         buf: &'buf [u8],
     ) -> Result<usize> {
         response.parse_with_config(buf, self)
@@ -527,7 +527,7 @@ impl<'h, 'b> Request<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = mem::replace(&mut self.headers, &mut []);
+        let headers = std::mem::take(&mut self.headers);
 
         /* SAFETY: see `parse_headers_iter_uninit` guarantees */
         unsafe {
@@ -628,7 +628,7 @@ impl<'h, 'b> Response<'h, 'b> {
     }
 
     fn parse_with_config(&mut self, buf: &'b [u8], config: &ParserConfig) -> Result<usize> {
-        let headers = mem::replace(&mut self.headers, &mut []);
+        let headers = std::mem::take(&mut self.headers);
 
         unsafe {
             let headers: *mut [Header<'_>] = headers;
@@ -893,7 +893,7 @@ pub fn parse_uri<'a>(bytes: &mut Bytes<'a>) -> Result<&'a str> {
             str::from_utf8_unchecked(bytes.slice_skip(1))
         }));
     } else {
-        return Err(Error::Token);
+        Err(Error::Token)
     }
 }
 
@@ -936,9 +936,9 @@ pub fn parse_headers<'b: 'h, 'h>(
 }
 
 #[inline]
-fn parse_headers_iter<'a, 'b>(
+fn parse_headers_iter<'a>(
     headers: &mut &mut [Header<'a>],
-    bytes: &'b mut Bytes<'a>,
+    bytes: &mut Bytes<'a>,
     config: &ParserConfig,
 ) -> Result<usize> {
     parse_headers_iter_uninit(
@@ -969,9 +969,9 @@ unsafe fn assume_init_slice<T>(s: &mut [MaybeUninit<T>]) -> &mut [T] {
  * Also it promises `headers` get shrunk to number of initialized headers,
  * so casting the other way around after calling this function is safe
  */
-fn parse_headers_iter_uninit<'a, 'b>(
+fn parse_headers_iter_uninit<'a>(
     headers: &mut &mut [MaybeUninit<Header<'a>>],
-    bytes: &'b mut Bytes<'a>,
+    bytes: &mut Bytes<'a>,
     config: &ParserConfig,
 ) -> Result<usize> {
 
@@ -986,7 +986,7 @@ fn parse_headers_iter_uninit<'a, 'b>(
 
     impl<'r1, 'r2, 'a> Drop for ShrinkOnDrop<'r1, 'r2, 'a> {
         fn drop(&mut self) {
-            let headers = mem::replace(self.headers, &mut []);
+            let headers = std::mem::take(self.headers);
 
             /* SAFETY: num_headers is the number of initialized headers */
             let headers = unsafe { headers.get_unchecked_mut(..self.num_headers) };

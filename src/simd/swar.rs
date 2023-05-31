@@ -198,15 +198,15 @@ fn test_is_header_value_block() {
 
     // 0..32 => false
     for b in 0..32_u8 {
-        assert_eq!(is_header_value_block([b; BLOCK_SIZE]), false, "b={}", b);
+        assert!(!is_header_value_block([b; BLOCK_SIZE]), "b={}", b);
     }
     // 32..127 => true
     for b in 32..127_u8 {
-        assert_eq!(is_header_value_block([b; BLOCK_SIZE]), true, "b={}", b);
+        assert!(is_header_value_block([b; BLOCK_SIZE]), "b={}", b);
     }
     // 127..=255 => false
     for b in 127..=255_u8 {
-        assert_eq!(is_header_value_block([b; BLOCK_SIZE]), false, "b={}", b);
+        assert!(!is_header_value_block([b; BLOCK_SIZE]), "b={}", b);
     }
 
     // A few sanity checks on non-uniform bytes for safe-measure
@@ -220,7 +220,7 @@ fn test_is_uri_block() {
 
     // 0..33 => false
     for b in 0..33_u8 {
-        assert_eq!(is_uri_block([b; BLOCK_SIZE]), false, "b={}", b);
+        assert!(!is_uri_block([b; BLOCK_SIZE]), "b={}", b);
     }
     // 33..127 => true if b not in { '<', '?', '>' }
     let falsy = |b| b"<?>".contains(&b);
@@ -229,7 +229,7 @@ fn test_is_uri_block() {
     }
     // 127..=255 => false
     for b in 127..=255_u8 {
-        assert_eq!(is_uri_block([b; BLOCK_SIZE]), false, "b={}", b);
+        assert!(!is_uri_block([b; BLOCK_SIZE]), "b={}", b);
     }
 }
 
@@ -237,7 +237,7 @@ fn test_is_uri_block() {
 fn test_offsetnz() {
     let seq = [0_u8; BLOCK_SIZE];
     for i in 0..BLOCK_SIZE {
-        let mut seq = seq.clone();
+        let mut seq = seq;
         seq[i] = 1;
         let x = usize::from_ne_bytes(seq);
         assert_eq!(offsetnz(x), i);
