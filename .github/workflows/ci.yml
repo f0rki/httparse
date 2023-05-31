@@ -190,7 +190,7 @@ jobs:
         run: MIRIFLAGS="-Zmiri-tag-raw-pointers -Zmiri-check-number-validity" cargo miri test
 
   mirai:
-    name: Run github.com/facebookexperimental/MIRAI static analyzer
+    name: MIRAI static analysis
     runs-on: ubuntu-latest
 
     steps:
@@ -201,15 +201,15 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
-          components: rustc-dev
+          toolchain: nightly-2023-05-09
+          components: rustc-dev rust-src rust-std
           override: true
 
       - name: install mirai
-        run: cargo +nightly install --locked --git https://github.com/facebookexperimental/MIRAI/ mirai
+        run: cargo install --locked --git https://github.com/facebookexperimental/MIRAI/ mirai
 
       - name: cargo mirai
-        run: cargo +nightly mirai --lib
+        run: cargo mirai --lib
 
   aarch64:
     name: Test aarch64 (neon)
