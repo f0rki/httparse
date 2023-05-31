@@ -1231,13 +1231,6 @@ pub fn parse_chunk_size(buf: &[u8])
     let mut in_ext = false;
     let mut count = 0;
     loop {
-        #[cfg(debug_assertions)]
-        if size >= (u64::MAX / RADIX) {
-            // actually unreachable!(), because count stops the loop at 15 digits before we can
-            // reach u64::MAX / RADIX == 0xfffffffffffffff, which requires 15 hex digits. This stops
-            // mirai reporting a false alarm regarding the `size *= RADIX` multiplication below.
-            return Err(InvalidChunkSize);
-        }
         let b = next!(bytes);
         match b {
             b'0' ..= b'9' if in_chunk_size => {
@@ -1245,6 +1238,13 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
+                #[cfg(debug_assertions)]
+                if size > (u64::MAX / RADIX) {
+                    // actually unreachable!(), because count stops the loop at 15 digits before we can
+                    // reach u64::MAX / RADIX == 0xfffffffffffffff, which requires 15 hex digits. This stops
+                    // mirai reporting a false alarm regarding the `size *= RADIX` multiplication below.
+                    return Err(InvalidChunkSize);
+                }
                 size *= RADIX;
                 size += (b - b'0') as u64;
             },
@@ -1253,6 +1253,10 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
+                #[cfg(debug_assertions)]
+                if size > (u64::MAX / RADIX) {
+                    return Err(InvalidChunkSize);
+                }
                 size *= RADIX;
                 size += (b + 10 - b'a') as u64;
             }
@@ -1261,6 +1265,9 @@ pub fn parse_chunk_size(buf: &[u8])
                     return Err(InvalidChunkSize);
                 }
                 count += 1;
+                if size > (u64::MAX / RADIX) {
+                    return Err(InvalidChunkSize);
+                }
                 size *= RADIX;
                 size += (b + 10 - b'A') as u64;
             }
