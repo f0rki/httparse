@@ -158,6 +158,16 @@ jobs:
           command: build
           args: --target aarch64-unknown-linux-gnu
 
+  clippy_check:
+    runs-on: ubuntu-latest
+    # Make sure CI fails on all warnings, including Clippy lints
+    env:
+      RUSTFLAGS: "-Dwarnings"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
+
   miri:
     name: Test with Miri
     runs-on: ubuntu-latest
@@ -176,6 +186,28 @@ jobs:
 
       - name: Test
         run: MIRIFLAGS="-Zmiri-tag-raw-pointers -Zmiri-check-number-validity" cargo miri test
+
+  mirai:
+    name: Run github.com/facebookexperimental/MIRAI static analyzer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustc-dev
+          override: true
+
+      - name: install mirai
+        run: cargo +nightly install --locked --git https://github.com/facebookexperimental/MIRAI/ mirai
+
+      - name: cargo mirai
+        run: cargo +nightly mirai --lib
 
   aarch64:
     name: Test aarch64 (neon)
