@@ -201,7 +201,7 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly-2023-05-09
-          components: rustc-dev, rust-src, rust-std
+          components: clippy, rustfmt, rustc-dev, rust-src, rust-std, llvm-tools-preview
           override: true
 
       - name: install mirai
